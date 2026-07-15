@@ -5,60 +5,103 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Karyawan - PT. General Technology Indonesia</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        paper: '#EDF0F2',
+                        ink: '#16233B',
+                        inkmuted: '#5B6B82',
+                        line: '#D8DEE4',
+                        accent: '#E2A33D',
+                        accentdark: '#B9822B',
+                        ok: '#1F8A54',
+                        okbg: '#E4F3EA',
+                        warn: '#C13B3B',
+                        warnbg: '#FBEAEA',
+                        info: '#3D5A80',
+                        infobg: '#E7ECF3',
+                        panel: '#16233B',
+                    },
+                    fontFamily: {
+                        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+                        sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+                    },
+                    borderRadius: { sm2: '4px' },
+                }
+            }
+        }
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Library Face API -->
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+        body { font-family: 'IBM Plex Sans', system-ui, sans-serif; background-color: #EDF0F2; }
         .hide { display: none !important; }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        /* Style untuk container kamera agar video dan canvas bertumpuk presisi */
-        #kameraContainer { position: relative; width: 100%; max-width: 400px; margin: 0 auto; border-radius: 12px; overflow: hidden; }
-        #videoAbsensi { width: 100%; height: auto; border-radius: 12px; transform: scaleX(-1); /* Mirror effect */ }
+        ::-webkit-scrollbar-track { background: #EDF0F2; }
+        ::-webkit-scrollbar-thumb { background: #B9C2CB; border-radius: 4px; }
+
+        /* Kamera / viewfinder wajah */
+        #kameraContainer { position: relative; width: 100%; max-width: 400px; margin: 0 auto; border-radius: 4px; overflow: hidden; }
+        #videoAbsensi { width: 100%; height: auto; display: block; transform: scaleX(-1); }
         #overlayCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
+        .vc-corner { position: absolute; width: 26px; height: 26px; border-color: #E2A33D; z-index: 15; pointer-events: none; }
+        .vc-tl { top: 10px; left: 10px; border-top: 3px solid; border-left: 3px solid; }
+        .vc-tr { top: 10px; right: 10px; border-top: 3px solid; border-right: 3px solid; }
+        .vc-bl { bottom: 10px; left: 10px; border-bottom: 3px solid; border-left: 3px solid; }
+        .vc-br { bottom: 10px; right: 10px; border-bottom: 3px solid; border-right: 3px solid; }
+        @keyframes vcpulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+        .vc-scan .vc-corner { animation: vcpulse 1.4s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .vc-scan .vc-corner { animation: none; } }
+
+        .badge-slot { position: relative; }
+        .badge-clip { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); width: 22px; height: 10px; background: #E2A33D; border-radius: 2px; z-index: 2; }
+
+        .ticket-edge { border-bottom: 2px dashed #D8DEE4; }
+        .status-chip { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .02em; padding: 2px 8px; border-radius: 3px; border: 1px solid; display: inline-block; }
     </style>
 </head>
-<body class="text-slate-800">
+<body class="text-ink">
 
-    <div id="toastNotification" class="fixed top-5 right-5 z-50 transform translate-y-[-100%] opacity-0 hide bg-white shadow-xl rounded-lg border border-slate-200 p-4 min-w-[300px] flex items-center gap-3 transition-all duration-300">
-        <div id="toastIcon" class="text-green-500 text-xl"><i class="fas fa-check-circle"></i></div>
+    <div id="toastNotification" class="fixed top-5 right-5 z-50 transform translate-y-[-100%] opacity-0 hide bg-white shadow-xl rounded-sm2 border-l-4 border-ok p-4 min-w-[300px] flex items-center gap-3 transition-all duration-300">
+        <div id="toastIcon" class="text-ok text-xl"><i class="fas fa-check-circle"></i></div>
         <div>
-            <h4 id="toastTitle" class="font-bold text-sm">Berhasil</h4>
-            <p id="toastMessage" class="text-xs text-slate-500">Aksi berhasil dilakukan.</p>
+            <h4 id="toastTitle" class="font-bold text-sm font-mono uppercase tracking-wide">Berhasil</h4>
+            <p id="toastMessage" class="text-xs text-inkmuted">Aksi berhasil dilakukan.</p>
         </div>
     </div>
 
     <div class="flex h-screen overflow-hidden">
         <!-- SIDEBAR -->
-        <aside class="w-64 bg-slate-900 text-white flex flex-col transition-all duration-300 md:relative absolute z-40 h-full transform -translate-x-full md:translate-x-0" id="sidebar">
-            <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+        <aside class="w-64 bg-panel text-white flex flex-col transition-all duration-300 md:relative absolute z-40 h-full transform -translate-x-full md:translate-x-0" id="sidebar">
+            <div class="p-6 border-b border-white/10 flex items-center justify-between">
                 <div>
-                    <h2 class="text-xl font-bold tracking-wider text-blue-400">PT. GTI</h2>
-                    <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">General Tech Indonesia</p>
+                    <h2 class="text-lg font-bold tracking-widest text-accent font-mono">PT. GTI</h2>
+                    <p class="text-[10px] text-white/40 uppercase tracking-[0.2em] mt-1">General Tech Indonesia</p>
                 </div>
-                <button class="md:hidden text-slate-400 hover:text-white" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+                <button class="md:hidden text-white/60 hover:text-white" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
             </div>
-            <nav class="flex-1 p-4 space-y-2">
-                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white transition-colors">
-                    <i class="fas fa-chart-pie w-5"></i> <span class="font-medium">Dashboard</span>
+            <nav class="flex-1 p-3 space-y-1">
+                <button onclick="switchTab('dashboard')" data-nav="dashboard" class="nav-btn w-full flex items-center gap-3 px-3 py-3 border-l-2 border-transparent text-white/60 hover:bg-white/5 hover:text-white transition-colors">
+                    <i class="fas fa-chart-pie w-4 text-sm"></i> <span class="font-mono text-xs uppercase tracking-wider font-semibold">Dashboard</span>
                 </button>
-                <button onclick="switchTab('karyawan')" id="nav-karyawan" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors">
-                    <i class="fas fa-users w-5"></i> <span class="font-medium">Data Karyawan</span>
+                <button onclick="switchTab('karyawan')" data-nav="karyawan" class="nav-btn w-full flex items-center gap-3 px-3 py-3 border-l-2 border-transparent text-white/60 hover:bg-white/5 hover:text-white transition-colors">
+                    <i class="fas fa-id-badge w-4 text-sm"></i> <span class="font-mono text-xs uppercase tracking-wider font-semibold">Data Karyawan</span>
                 </button>
-                <button onclick="switchTab('absensi')" id="nav-absensi" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors">
-                    <i class="fas fa-camera-retro w-5"></i> <span class="font-medium">Absensi AI</span>
+                <button onclick="switchTab('absensi')" data-nav="absensi" class="nav-btn w-full flex items-center gap-3 px-3 py-3 border-l-2 border-transparent text-white/60 hover:bg-white/5 hover:text-white transition-colors">
+                    <i class="fas fa-crosshairs w-4 text-sm"></i> <span class="font-mono text-xs uppercase tracking-wider font-semibold">Absensi Wajah</span>
                 </button>
-                <button onclick="switchTab('laporan')" id="nav-laporan" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors">
-                    <i class="fas fa-file-export w-5"></i> <span class="font-medium">Laporan</span>
+                <button onclick="switchTab('laporan')" data-nav="laporan" class="nav-btn w-full flex items-center gap-3 px-3 py-3 border-l-2 border-transparent text-white/60 hover:bg-white/5 hover:text-white transition-colors">
+                    <i class="fas fa-file-export w-4 text-sm"></i> <span class="font-mono text-xs uppercase tracking-wider font-semibold">Laporan</span>
                 </button>
             </nav>
-            <div class="p-4 border-t border-slate-800 text-xs text-slate-500 text-center">
-                <div class="flex items-center justify-center gap-2 mb-2 text-green-400" id="aiStatusInfo">
-                    <i class="fas fa-robot"></i> AI Loading...
+            <div class="p-4 border-t border-white/10 text-[11px] text-white/40 text-center font-mono">
+                <div class="flex items-center justify-center gap-2 mb-2 text-ok" id="aiStatusInfo">
+                    <i class="fas fa-circle-notch fa-spin"></i> AI LOADING...
                 </div>
                 &copy; 2026 PT. GTI
             </div>
@@ -66,124 +109,141 @@
 
         <!-- MAIN CONTENT -->
         <main class="flex-1 flex flex-col h-full overflow-hidden relative">
-            <header class="bg-white shadow-sm z-30 p-4 flex items-center justify-between">
+            <header class="bg-white ticket-edge z-30 p-4 flex items-center justify-between">
                 <div class="flex items-center gap-4">
-                    <button class="md:hidden text-slate-600 hover:text-blue-600" onclick="toggleSidebar()">
+                    <button class="md:hidden text-ink hover:text-accentdark" onclick="toggleSidebar()">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
-                    <h1 class="text-xl font-bold text-slate-700" id="pageTitle">Dashboard</h1>
+                    <div>
+                        <h1 class="text-lg font-bold text-ink font-mono uppercase tracking-wide" id="pageTitle">Dashboard</h1>
+                        <p class="text-[11px] text-inkmuted font-mono" id="pageSubtitle">Ringkasan sistem</p>
+                    </div>
+                </div>
+                <div class="text-right hidden sm:block">
+                    <div id="liveClock" class="font-mono text-sm text-ink font-semibold">--:--:--</div>
+                    <div id="liveDate" class="font-mono text-[10px] text-inkmuted uppercase tracking-wide">-- --- ----</div>
                 </div>
             </header>
 
             <div class="flex-1 overflow-y-auto p-4 md:p-8 relative" id="contentArea">
-                <div id="loadingOverlay" class="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center backdrop-blur-sm hide">
-                    <i class="fas fa-circle-notch fa-spin text-4xl text-blue-600 mb-3"></i>
-                    <p class="text-slate-600 font-medium animate-pulse" id="loadingText">Memuat Data...</p>
+                <div id="loadingOverlay" class="absolute inset-0 bg-paper/90 z-20 flex flex-col items-center justify-center backdrop-blur-sm hide">
+                    <i class="fas fa-circle-notch fa-spin text-3xl text-accent mb-3"></i>
+                    <p class="text-inkmuted font-mono text-xs uppercase tracking-wide animate-pulse" id="loadingText">Memuat Data...</p>
                 </div>
 
                 <!-- DASHBOARD -->
-                <section id="tab-dashboard" class="tab-content animate-fade-in">
+                <section id="tab-dashboard" class="tab-content">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 border-l-4 border-l-blue-500">
-                            <div class="p-4 rounded-full bg-blue-50 text-blue-500 text-2xl"><i class="fas fa-users"></i></div>
-                            <div><p class="text-slate-500 text-sm font-medium">Total Karyawan</p><h3 class="text-3xl font-bold" id="statKaryawan">0</h3></div>
+                        <div class="bg-white p-6 rounded-sm2 border border-line border-t-4 border-t-accent flex items-center gap-4">
+                            <div class="w-12 h-12 flex items-center justify-center rounded-full bg-accent/10 text-accentdark text-xl border border-accent/30"><i class="fas fa-id-badge"></i></div>
+                            <div>
+                                <p class="text-inkmuted text-[11px] font-mono uppercase tracking-wider">Total Karyawan Terdaftar</p>
+                                <h3 class="text-4xl font-bold font-mono text-ink" id="statKaryawan">0</h3>
+                            </div>
                         </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 border-l-4 border-l-green-500">
-                            <div class="p-4 rounded-full bg-green-50 text-green-500 text-2xl"><i class="fas fa-fingerprint"></i></div>
-                            <div><p class="text-slate-500 text-sm font-medium">Absensi Hari Ini</p><h3 class="text-3xl font-bold" id="statAbsensi">0</h3></div>
+                        <div class="bg-white p-6 rounded-sm2 border border-line border-t-4 border-t-ok flex items-center gap-4">
+                            <div class="w-12 h-12 flex items-center justify-center rounded-full bg-okbg text-ok text-xl border border-ok/30"><i class="fas fa-fingerprint"></i></div>
+                            <div>
+                                <p class="text-inkmuted text-[11px] font-mono uppercase tracking-wider">Absensi Hari Ini</p>
+                                <h3 class="text-4xl font-bold font-mono text-ink" id="statAbsensi">0</h3>
+                            </div>
                         </div>
                     </div>
                 </section>
 
                 <!-- KARYAWAN -->
-                <section id="tab-karyawan" class="tab-content hide animate-fade-in">
+                <section id="tab-karyawan" class="tab-content hide">
                     <div class="flex flex-col sm:flex-row justify-between mb-6 gap-4">
-                        <h2 class="text-lg font-bold text-slate-700">Daftar Personel</h2>
-                        <button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                        <h2 class="text-sm font-bold text-ink font-mono uppercase tracking-wider self-center">Daftar Personel</h2>
+                        <button onclick="openAddModal()" class="bg-accent hover:bg-accentdark hover:text-white text-ink border border-accentdark px-4 py-2 rounded-sm2 text-xs font-mono font-semibold uppercase tracking-wide transition flex items-center gap-2">
                             <i class="fas fa-plus"></i> Tambah Karyawan
                         </button>
                     </div>
-                    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                    <div class="bg-white border border-line rounded-sm2 overflow-hidden">
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
-                                    <tr class="bg-slate-50 text-slate-600 text-sm border-b border-slate-200">
-                                        <th class="p-4 font-semibold w-16">Profil</th>
-                                        <th class="p-4 font-semibold">ID & Nama</th>
+                                    <tr class="bg-paper text-inkmuted text-[11px] font-mono uppercase tracking-wider border-b-2 border-line">
+                                        <th class="p-4 font-semibold w-16">Foto</th>
+                                        <th class="p-4 font-semibold">ID &amp; Nama</th>
                                         <th class="p-4 font-semibold">Posisi</th>
                                         <th class="p-4 font-semibold text-center w-20">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tableBodyKaryawan" class="divide-y divide-slate-100"></tbody>
+                                <tbody id="tableBodyKaryawan" class="divide-y divide-line"></tbody>
                             </table>
                         </div>
                     </div>
                 </section>
 
                 <!-- ABSENSI & FACE RECOGNITION -->
-                <section id="tab-absensi" class="tab-content hide animate-fade-in">
+                <section id="tab-absensi" class="tab-content hide">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        
+
                         <!-- Panel Kamera -->
-                        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 text-center">
-                            <h2 class="text-lg font-bold text-slate-700 border-b pb-3 mb-4">Pengenalan Wajah AI</h2>
-                            <p class="text-xs text-slate-500 mb-4">Pastikan wajah berada di tengah kamera dan pencahayaan cukup terang.</p>
-                            
+                        <div class="bg-white border border-line rounded-sm2 p-6 text-center">
+                            <h2 class="text-sm font-bold text-ink font-mono uppercase tracking-wider border-b border-line pb-3 mb-4">Pemindaian Wajah</h2>
+                            <p class="text-xs text-inkmuted mb-4">Posisikan wajah di tengah bingkai, pastikan cahaya cukup terang.</p>
+
                             <div id="kameraState" class="mb-4">
-                                <button onclick="startFaceScan()" id="btnStartScan" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-full font-medium transition shadow-lg flex items-center justify-center gap-2 mx-auto">
-                                    <i class="fas fa-camera"></i> Mulai Scan Wajah
+                                <button onclick="startFaceScan()" id="btnStartScan" class="bg-ink hover:bg-accentdark text-white px-6 py-3 rounded-sm2 font-mono text-xs font-semibold uppercase tracking-wide transition flex items-center justify-center gap-2 mx-auto">
+                                    <i class="fas fa-camera"></i> Mulai Pindai Wajah
                                 </button>
                             </div>
 
-                            <div id="kameraContainer" class="hide bg-slate-900 border-4 border-indigo-100 shadow-inner">
+                            <div id="kameraContainer" class="hide bg-ink vc-scan">
                                 <video id="videoAbsensi" autoplay muted playsinline></video>
                                 <canvas id="overlayCanvas"></canvas>
+                                <div class="vc-corner vc-tl"></div>
+                                <div class="vc-corner vc-tr"></div>
+                                <div class="vc-corner vc-bl"></div>
+                                <div class="vc-corner vc-br"></div>
                                 <div class="absolute bottom-2 left-0 w-full flex justify-center gap-2 z-20">
-                                    <button onclick="stopFaceScan()" class="bg-red-500/80 text-white text-xs px-3 py-1 rounded-full backdrop-blur-md">Batal</button>
+                                    <button onclick="stopFaceScan()" class="bg-warn/90 text-white text-[11px] font-mono uppercase tracking-wide px-3 py-1 rounded-sm2 backdrop-blur-md">Batal</button>
                                 </div>
                             </div>
-                            
+
                             <div id="scanResult" class="mt-4 hide">
-                                <div class="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center text-green-500 text-2xl mb-2"><i class="fas fa-check"></i></div>
-                                <h3 class="font-bold text-slate-800" id="scanNameResult">Wajah Terdeteksi</h3>
-                                <p class="text-xs text-green-600 font-medium">Cocok dengan database. Melanjutkan absensi...</p>
+                                <div class="w-14 h-14 mx-auto rounded-full bg-okbg flex items-center justify-center text-ok text-xl mb-2 border border-ok/30"><i class="fas fa-check"></i></div>
+                                <h3 class="font-bold text-ink font-mono" id="scanNameResult">Wajah Terdeteksi</h3>
+                                <p class="text-xs text-ok font-medium font-mono">Cocok dengan database. Melanjutkan absensi...</p>
                             </div>
                         </div>
 
                         <!-- Panel Form Absensi -->
-                        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 relative">
-                            <div id="formOverlay" class="absolute inset-0 bg-white/60 z-10 hide backdrop-blur-[1px]"></div>
-                            <h2 class="text-lg font-bold text-slate-700 border-b pb-3 mb-4">Form Kehadiran</h2>
+                        <div class="bg-white border border-line rounded-sm2 p-6 relative">
+                            <div id="formOverlay" class="absolute inset-0 bg-white/70 z-10 hide backdrop-blur-[1px]"></div>
+                            <h2 class="text-sm font-bold text-ink font-mono uppercase tracking-wider border-b border-line pb-3 mb-4">Form Kehadiran</h2>
                             <form id="formAbsensi" onsubmit="submitAbsensi(event)">
                                 <div class="mb-4">
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">ID Karyawan</label>
-                                    <select id="absensiKaryawan" required class="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50">
+                                    <label class="block text-xs font-mono uppercase tracking-wide text-inkmuted mb-1">ID Karyawan</label>
+                                    <select id="absensiKaryawan" required class="w-full border border-line rounded-sm2 p-2.5 bg-paper text-sm focus:outline-none focus:border-accent">
                                         <option value="">-- Pilih Manual Jika Kamera Gagal --</option>
                                     </select>
                                 </div>
                                 <div class="mb-4">
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                                    <label class="block text-xs font-mono uppercase tracking-wide text-inkmuted mb-1">Status</label>
                                     <div class="grid grid-cols-2 gap-2">
-                                        <label class="border rounded-lg p-2 flex items-center gap-2 cursor-pointer hover:bg-slate-50"><input type="radio" name="statusAbsen" value="Hadir" required checked class="text-blue-600"> <span class="text-sm">Hadir</span></label>
-                                        <label class="border rounded-lg p-2 flex items-center gap-2 cursor-pointer hover:bg-slate-50"><input type="radio" name="statusAbsen" value="Izin" required class="text-blue-600"> <span class="text-sm">Izin</span></label>
-                                        <label class="border rounded-lg p-2 flex items-center gap-2 cursor-pointer hover:bg-slate-50"><input type="radio" name="statusAbsen" value="Sakit" required class="text-blue-600"> <span class="text-sm">Sakit</span></label>
-                                        <label class="border rounded-lg p-2 flex items-center gap-2 cursor-pointer hover:bg-slate-50"><input type="radio" name="statusAbsen" value="Dinas Luar" required class="text-blue-600"> <span class="text-sm">Dinas Luar</span></label>
+                                        <label class="border border-line rounded-sm2 p-2 flex items-center gap-2 cursor-pointer hover:bg-paper has-[:checked]:border-ok has-[:checked]:bg-okbg"><input type="radio" name="statusAbsen" value="Hadir" required checked class="text-ok"> <span class="text-sm">Hadir</span></label>
+                                        <label class="border border-line rounded-sm2 p-2 flex items-center gap-2 cursor-pointer hover:bg-paper has-[:checked]:border-accentdark has-[:checked]:bg-accent/10"><input type="radio" name="statusAbsen" value="Izin" required class="text-accentdark"> <span class="text-sm">Izin</span></label>
+                                        <label class="border border-line rounded-sm2 p-2 flex items-center gap-2 cursor-pointer hover:bg-paper has-[:checked]:border-warn has-[:checked]:bg-warnbg"><input type="radio" name="statusAbsen" value="Sakit" required class="text-warn"> <span class="text-sm">Sakit</span></label>
+                                        <label class="border border-line rounded-sm2 p-2 flex items-center gap-2 cursor-pointer hover:bg-paper has-[:checked]:border-info has-[:checked]:bg-infobg"><input type="radio" name="statusAbsen" value="Dinas Luar" required class="text-info"> <span class="text-sm">Dinas Luar</span></label>
                                     </div>
                                 </div>
                                 <div class="mb-4">
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
-                                    <input type="text" id="absensiKeterangan" placeholder="Opsional" class="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50 text-sm">
-                                </div>
-                                
-                                <!-- Foto Bukti Hidden Input -->
-                                <input type="hidden" id="absensiFotoBukti" value="">
-                                
-                                <div id="previewBuktiContainer" class="mb-4 hide">
-                                    <p class="text-xs text-slate-500 mb-1">Foto Bukti Terlampir:</p>
-                                    <img id="previewBukti" src="" class="h-20 rounded border border-slate-200">
+                                    <label class="block text-xs font-mono uppercase tracking-wide text-inkmuted mb-1">Keterangan</label>
+                                    <input type="text" id="absensiKeterangan" placeholder="Opsional" class="w-full border border-line rounded-sm2 p-2.5 bg-paper text-sm focus:outline-none focus:border-accent">
                                 </div>
 
-                                <button type="submit" id="btnSubmitAbsensi" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition flex justify-center gap-2">
+                                <!-- Foto Bukti Hidden Input -->
+                                <input type="hidden" id="absensiFotoBukti" value="">
+
+                                <div id="previewBuktiContainer" class="mb-4 hide">
+                                    <p class="text-[11px] font-mono uppercase tracking-wide text-inkmuted mb-1">Foto Bukti Terlampir:</p>
+                                    <img id="previewBukti" src="" class="h-20 rounded-sm2 border border-line">
+                                </div>
+
+                                <button type="submit" id="btnSubmitAbsensi" class="w-full bg-accent hover:bg-accentdark hover:text-white text-ink border border-accentdark font-mono text-xs font-semibold uppercase tracking-wide py-3 rounded-sm2 transition flex justify-center gap-2">
                                     <i class="fas fa-paper-plane"></i> Kirim Absen
                                 </button>
                             </form>
@@ -192,19 +252,20 @@
                 </section>
 
                 <!-- LAPORAN -->
-                <section id="tab-laporan" class="tab-content hide animate-fade-in">
-                    <!-- (Sama seperti versi sebelumnya, disingkat untuk keterbacaan) -->
-                    <div class="bg-white border rounded-xl p-6 mb-6 flex justify-between items-end">
-                        <div class="flex gap-4">
-                            <div><label class="block text-sm mb-1">Bulan</label><input type="month" id="filterBulan" onchange="filterLaporan()" class="border rounded p-2 text-sm"></div>
-                            <div><label class="block text-sm mb-1">Karyawan</label><select id="filterKaryawan" onchange="filterLaporan()" class="border rounded p-2 text-sm"><option value="ALL">Semua</option></select></div>
+                <section id="tab-laporan" class="tab-content hide">
+                    <div class="bg-white border border-line rounded-sm2 p-6 mb-6 flex flex-wrap justify-between items-end gap-4">
+                        <div class="flex gap-4 flex-wrap">
+                            <div><label class="block text-[11px] font-mono uppercase tracking-wide text-inkmuted mb-1">Bulan</label><input type="month" id="filterBulan" onchange="filterLaporan()" class="border border-line rounded-sm2 p-2 text-sm bg-paper"></div>
+                            <div><label class="block text-[11px] font-mono uppercase tracking-wide text-inkmuted mb-1">Karyawan</label><select id="filterKaryawan" onchange="filterLaporan()" class="border border-line rounded-sm2 p-2 text-sm bg-paper"><option value="ALL">Semua</option></select></div>
                         </div>
-                        <button onclick="exportToCSV()" class="bg-green-600 text-white px-4 py-2 rounded text-sm"><i class="fas fa-file-csv"></i> Export CSV</button>
+                        <button onclick="exportToCSV()" class="bg-ink hover:bg-accentdark text-white px-4 py-2 rounded-sm2 text-xs font-mono font-semibold uppercase tracking-wide"><i class="fas fa-file-csv"></i> Export CSV</button>
                     </div>
-                    <div class="bg-white border rounded-xl overflow-hidden">
+                    <div class="bg-white border border-line rounded-sm2 overflow-hidden">
                         <table class="w-full text-left border-collapse text-sm">
-                            <thead class="bg-slate-50 text-slate-500"><th class="p-3">Waktu</th><th class="p-3">Nama</th><th class="p-3">Status</th><th class="p-3">Bukti</th></thead>
-                            <tbody id="tableBodyLaporan" class="divide-y divide-slate-100"></tbody>
+                            <thead class="bg-paper text-inkmuted text-[11px] font-mono uppercase tracking-wider">
+                                <tr><th class="p-3">Waktu</th><th class="p-3">Nama</th><th class="p-3">Status</th><th class="p-3">Bukti</th></tr>
+                            </thead>
+                            <tbody id="tableBodyLaporan" class="divide-y divide-line"></tbody>
                         </table>
                     </div>
                 </section>
@@ -213,26 +274,29 @@
     </div>
 
     <!-- MODAL KARYAWAN -->
-    <div id="modalKaryawan" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hide">
-        <div class="bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl">
-            <h3 class="font-bold text-lg mb-4" id="modalKaryawanTitle">Form Karyawan</h3>
+    <div id="modalKaryawan" class="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 backdrop-blur-sm hide">
+        <div class="bg-white rounded-sm2 w-full max-w-md mx-4 p-6 shadow-2xl border-t-4 border-accent">
+            <h3 class="font-bold text-sm font-mono uppercase tracking-wider mb-4" id="modalKaryawanTitle">Form Karyawan</h3>
             <form id="formKaryawan" onsubmit="submitKaryawan(event)">
                 <div class="flex flex-col items-center mb-4 cursor-pointer" onclick="document.getElementById('fotoKaryawan').click()">
-                    <div class="w-24 h-24 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden">
-                        <img id="fotoPreview" class="w-full h-full object-cover hide">
-                        <div id="fotoPlaceholder" class="text-center text-slate-400"><i class="fas fa-camera text-2xl"></i><p class="text-[10px]">Wajib (Untuk AI)</p></div>
+                    <div class="badge-slot">
+                        <div class="badge-clip"></div>
+                        <div class="w-24 h-24 rounded-full bg-paper border-2 border-dashed border-line flex items-center justify-center overflow-hidden">
+                            <img id="fotoPreview" class="w-full h-full object-cover hide">
+                            <div id="fotoPlaceholder" class="text-center text-inkmuted"><i class="fas fa-camera text-2xl"></i><p class="text-[10px] font-mono uppercase mt-1">Wajib untuk AI</p></div>
+                        </div>
                     </div>
                     <input type="file" id="fotoKaryawan" accept="image/*" class="hide" onchange="handleFotoUpload(event)">
                 </div>
                 <div class="space-y-3">
-                    <input type="text" id="karNama" placeholder="Nama Lengkap" required class="w-full border rounded p-2 text-sm">
-                    <input type="text" id="karJabatan" placeholder="Jabatan" required class="w-full border rounded p-2 text-sm">
-                    <input type="text" id="karJobdesk" placeholder="Jobdesk" required class="w-full border rounded p-2 text-sm">
-                    <textarea id="karAlamat" placeholder="Alamat" required class="w-full border rounded p-2 text-sm"></textarea>
+                    <input type="text" id="karNama" placeholder="Nama Lengkap" required class="w-full border border-line rounded-sm2 p-2 text-sm focus:outline-none focus:border-accent">
+                    <input type="text" id="karJabatan" placeholder="Jabatan" required class="w-full border border-line rounded-sm2 p-2 text-sm focus:outline-none focus:border-accent">
+                    <input type="text" id="karJobdesk" placeholder="Jobdesk" required class="w-full border border-line rounded-sm2 p-2 text-sm focus:outline-none focus:border-accent">
+                    <textarea id="karAlamat" placeholder="Alamat" required class="w-full border border-line rounded-sm2 p-2 text-sm focus:outline-none focus:border-accent"></textarea>
                 </div>
                 <div class="mt-6 flex justify-end gap-2">
-                    <button type="button" onclick="closeModal('modalKaryawan')" class="px-4 py-2 text-slate-600">Batal</button>
-                    <button type="submit" id="btnSubmitKaryawan" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+                    <button type="button" onclick="closeModal('modalKaryawan')" class="px-4 py-2 text-inkmuted font-mono text-xs uppercase tracking-wide">Batal</button>
+                    <button type="submit" id="btnSubmitKaryawan" class="bg-accent hover:bg-accentdark hover:text-white text-ink border border-accentdark px-4 py-2 rounded-sm2 font-mono text-xs font-semibold uppercase tracking-wide">Simpan</button>
                 </div>
             </form>
         </div>
@@ -240,10 +304,18 @@
 
     <script>
         // === GANTI URL DI BAWAH INI ===
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwj5_8ZBCOScTsEDI3CPWX6iK4L7urS-qQbW9L51tXyXWSet6oacBXpee5SlJ8TDAM/exec'; 
-        
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwj5_8ZBCOScTsEDI3CPWX6iK4L7urS-qQbW9L51tXyXWSet6oacBXpee5SlJ8TDAM/exec';
+
         let dataKaryawan = [], dataAbsensi = [], base64FotoTemp = "", currentEditId = null;
-        
+        let currentFilteredLaporan = [];
+
+        const TAB_META = {
+            dashboard: { title: 'Dashboard', sub: 'Ringkasan sistem' },
+            karyawan: { title: 'Data Karyawan', sub: 'Daftar personel terdaftar' },
+            absensi: { title: 'Absensi Wajah', sub: 'Pemindaian & pencatatan kehadiran' },
+            laporan: { title: 'Laporan', sub: 'Riwayat kehadiran' },
+        };
+
         // Face API Globals
         let faceMatcher = null;
         let isFaceModelsLoaded = false;
@@ -257,12 +329,12 @@
             setLoading(true, "Mendownload Model AI Wajah (Tunggu Sebentar)...");
             await loadFaceModels();
             setLoading(false);
+            startClock();
         }
 
         // --- FACE RECOGNITION LOGIC ---
         async function loadFaceModels() {
             try {
-                // Load model dari CDN jsdelivr github proxy
                 const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
                 await Promise.all([
                     faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
@@ -270,13 +342,11 @@
                     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
                 isFaceModelsLoaded = true;
-                document.getElementById('aiStatusInfo').innerHTML = '<i class="fas fa-robot"></i> AI Ready';
-                
-                // Mulai pelajari wajah karyawan dari database
+                document.getElementById('aiStatusInfo').innerHTML = '<i class="fas fa-satellite-dish"></i> AI READY';
                 await trainFaceMatcher();
             } catch (e) {
                 console.error(e);
-                document.getElementById('aiStatusInfo').innerHTML = '<i class="fas fa-exclamation-triangle text-red-400"></i> AI Error';
+                document.getElementById('aiStatusInfo').innerHTML = '<i class="fas fa-triangle-exclamation text-warn"></i> AI ERROR';
             }
         }
 
@@ -291,8 +361,8 @@
 
         async function trainFaceMatcher() {
             const labeledDescriptors = [];
-            document.getElementById('aiStatusInfo').innerHTML = '<i class="fas fa-brain"></i> AI Learning...';
-            
+            document.getElementById('aiStatusInfo').innerHTML = '<i class="fas fa-brain"></i> AI LEARNING...';
+
             for (const kar of dataKaryawan) {
                 if (kar.Foto && kar.Foto.startsWith('data:image')) {
                     try {
@@ -304,13 +374,12 @@
                     } catch(e) { console.log("Gagal memproses foto ID: " + kar.ID_Karyawan); }
                 }
             }
-            
+
             if (labeledDescriptors.length > 0) {
-                // Threshold 0.5 (Lebih kecil lebih ketat. Standarnya 0.6)
-                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55); 
-                document.getElementById('aiStatusInfo').innerHTML = `<i class="fas fa-check-double"></i> AI Ready (${labeledDescriptors.length} Wajah)`;
+                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
+                document.getElementById('aiStatusInfo').innerHTML = `<i class="fas fa-satellite-dish"></i> AI READY (${labeledDescriptors.length})`;
             } else {
-                document.getElementById('aiStatusInfo').innerHTML = `<i class="fas fa-robot"></i> AI Ready (0 Wajah)`;
+                document.getElementById('aiStatusInfo').innerHTML = `<i class="fas fa-satellite-dish"></i> AI READY (0)`;
             }
         }
 
@@ -318,11 +387,11 @@
             if(!isFaceModelsLoaded || !faceMatcher) {
                 return showToast("AI belum siap atau tidak ada data wajah.", "error");
             }
-            
+
             document.getElementById('kameraState').classList.add('hide');
             document.getElementById('kameraContainer').classList.remove('hide');
             document.getElementById('scanResult').classList.add('hide');
-            document.getElementById('formOverlay').classList.remove('hide'); // Kunci form
+            document.getElementById('formOverlay').classList.remove('hide');
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
@@ -340,73 +409,118 @@
             clearInterval(scanInterval);
             document.getElementById('kameraContainer').classList.add('hide');
             document.getElementById('kameraState').classList.remove('hide');
-            document.getElementById('formOverlay').classList.add('hide'); // Buka form
+            document.getElementById('formOverlay').classList.add('hide');
         }
 
         videoEl.addEventListener('play', () => {
             const displaySize = { width: videoEl.offsetWidth, height: videoEl.offsetHeight };
             faceapi.matchDimensions(canvasEl, displaySize);
-            
+
             scanInterval = setInterval(async () => {
-                // Deteksi wajah di video
                 const detection = await faceapi.detectSingleFace(videoEl).withFaceLandmarks().withFaceDescriptor();
-                
+
                 const ctx = canvasEl.getContext('2d');
                 ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-                
+
                 if (detection) {
                     const resizedDetections = faceapi.resizeResults(detection, displaySize);
-                    
-                    // Mirroring box correction
                     const box = resizedDetections.detection.box;
                     const mirroredX = displaySize.width - box.x - box.width;
-                    
-                    ctx.strokeStyle = '#4f46e5';
+
+                    ctx.strokeStyle = '#E2A33D';
                     ctx.lineWidth = 3;
                     ctx.strokeRect(mirroredX, box.y, box.width, box.height);
 
-                    // Cocokkan wajah
                     const match = faceMatcher.findBestMatch(detection.descriptor);
-                    
+
                     if (match.label !== 'unknown') {
-                        // WAJAH DIKENALI!
                         clearInterval(scanInterval);
-                        
-                        // Ambil Snapshot untuk Bukti (dari video element ke canvas kecil)
+
                         const snapCanvas = document.createElement('canvas');
                         snapCanvas.width = 300; snapCanvas.height = 225;
                         snapCanvas.getContext('2d').drawImage(videoEl, 0, 0, snapCanvas.width, snapCanvas.height);
                         const base64Bukti = snapCanvas.toDataURL('image/jpeg', 0.6);
-                        
+
                         stopFaceScan();
-                        
-                        // Update UI
+
                         const kar = dataKaryawan.find(k => k.ID_Karyawan === match.label);
                         document.getElementById('scanNameResult').innerText = kar.Nama;
                         document.getElementById('scanResult').classList.remove('hide');
                         document.getElementById('kameraState').classList.add('hide');
-                        
-                        // Isi Form Otomatis
+
                         document.getElementById('absensiKaryawan').value = match.label;
                         document.getElementById('absensiFotoBukti').value = base64Bukti;
                         document.getElementById('previewBukti').src = base64Bukti;
                         document.getElementById('previewBuktiContainer').classList.remove('hide');
-                        
+
                         showToast(`Halo, ${kar.Nama}! Silakan klik Kirim Absen.`);
                     }
                 }
-            }, 500); // Cek tiap 0.5 detik
+            }, 500);
         });
-
 
         // --- FUNGSI STANDAR (API & UI) ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hide'));
             document.getElementById(`tab-${tabId}`).classList.remove('hide');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                const active = btn.dataset.nav === tabId;
+                btn.classList.toggle('border-accent', active);
+                btn.classList.toggle('text-white', active);
+                btn.classList.toggle('bg-white/5', active);
+                btn.classList.toggle('text-white/60', !active);
+            });
+
+            const meta = TAB_META[tabId];
+            if (meta) {
+                document.getElementById('pageTitle').innerText = meta.title;
+                document.getElementById('pageSubtitle').innerText = meta.sub;
+            }
+
             if (window.innerWidth < 768) toggleSidebar();
         }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
-        function showToast(msg, type='success') { /* (Code toast disingkat agar hemat spasi, intinya menampilkan notif) */ alert(msg); }
+
+        function startClock() {
+            const tick = () => {
+                const now = new Date();
+                document.getElementById('liveClock').innerText = now.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
+                document.getElementById('liveDate').innerText = now.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+            };
+            tick();
+            setInterval(tick, 1000);
+        }
+
+        function showToast(msg, type = 'success') {
+            const box = document.getElementById('toastNotification');
+            const icon = document.getElementById('toastIcon');
+            const title = document.getElementById('toastTitle');
+            const message = document.getElementById('toastMessage');
+
+            const cfg = type === 'error'
+                ? { border: 'border-warn', color: 'text-warn', icon: 'fa-circle-exclamation', title: 'Gagal' }
+                : { border: 'border-ok', color: 'text-ok', icon: 'fa-check-circle', title: 'Berhasil' };
+
+            box.classList.remove('border-warn', 'border-ok');
+            box.classList.add(cfg.border);
+            icon.className = `${cfg.color} text-xl`;
+            icon.innerHTML = `<i class="fas ${cfg.icon}"></i>`;
+            title.innerText = cfg.title;
+            message.innerText = msg;
+
+            box.classList.remove('hide');
+            requestAnimationFrame(() => {
+                box.classList.remove('translate-y-[-100%]', 'opacity-0');
+            });
+
+            clearTimeout(box._timer);
+            box._timer = setTimeout(() => {
+                box.classList.add('translate-y-[-100%]', 'opacity-0');
+                setTimeout(() => box.classList.add('hide'), 300);
+            }, 3200);
+        }
+
         function setLoading(state, msg = "Memuat...") {
             const overlay = document.getElementById('loadingOverlay');
             document.getElementById('loadingText').innerText = msg;
@@ -419,10 +533,10 @@
                 let [resKar, resAbs] = await Promise.all([fetch(`${SCRIPT_URL}?action=getKaryawan`), fetch(`${SCRIPT_URL}?action=getAbsensi`)]);
                 dataKaryawan = (await resKar.json()).data || [];
                 dataAbsensi = (await resAbs.json()).data || [];
-                
+
                 document.getElementById('statKaryawan').innerText = dataKaryawan.length;
                 document.getElementById('statAbsensi').innerText = dataAbsensi.filter(a => a.Tanggal === new Date().toLocaleDateString('id-ID')).length;
-                
+
                 renderKaryawan(); populateSelects(); filterLaporan();
             } catch (e) { showToast("Gagal mengambil data", "error"); }
         }
@@ -435,13 +549,12 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    canvas.width = 200; canvas.height = 200; // Persegi untuk profil
+                    canvas.width = 200; canvas.height = 200;
                     const ctx = canvas.getContext('2d');
-                    // Crop center
                     const min = Math.min(img.width, img.height);
                     const sx = (img.width - min) / 2, sy = (img.height - min) / 2;
                     ctx.drawImage(img, sx, sy, min, min, 0, 0, 200, 200);
-                    
+
                     base64FotoTemp = canvas.toDataURL('image/jpeg', 0.7);
                     document.getElementById('fotoPreview').src = base64FotoTemp;
                     document.getElementById('fotoPreview').classList.remove('hide');
@@ -461,7 +574,30 @@
             base64FotoTemp = "";
             document.getElementById('modalKaryawan').classList.remove('hide');
         }
-        
+
+        function openEditModal(id) {
+            const kar = dataKaryawan.find(k => k.ID_Karyawan === id);
+            if (!kar) return showToast("Data karyawan tidak ditemukan", "error");
+
+            currentEditId = id;
+            base64FotoTemp = "";
+            document.getElementById('modalKaryawanTitle').innerText = "Edit Karyawan";
+            document.getElementById('karNama').value = kar.Nama || "";
+            document.getElementById('karJabatan').value = kar.Jabatan || "";
+            document.getElementById('karJobdesk').value = kar.JobDesk || "";
+            document.getElementById('karAlamat').value = kar.Alamat || "";
+
+            if (kar.Foto) {
+                document.getElementById('fotoPreview').src = kar.Foto;
+                document.getElementById('fotoPreview').classList.remove('hide');
+                document.getElementById('fotoPlaceholder').classList.add('hide');
+            } else {
+                document.getElementById('fotoPreview').classList.add('hide');
+                document.getElementById('fotoPlaceholder').classList.remove('hide');
+            }
+            document.getElementById('modalKaryawan').classList.remove('hide');
+        }
+
         function closeModal(id) { document.getElementById(id).classList.add('hide'); }
 
         async function submitKaryawan(e) {
@@ -478,7 +614,8 @@
             };
             await fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
             closeModal('modalKaryawan');
-            await init(); // Refresh semua data & Retrain AI
+            await init();
+            showToast(currentEditId ? "Data karyawan diperbarui" : "Karyawan baru ditambahkan");
         }
 
         async function submitAbsensi(e) {
@@ -492,15 +629,14 @@
                 keterangan: document.getElementById('absensiKeterangan').value,
                 fotoBukti: document.getElementById('absensiFotoBukti').value
             };
-            
+
             await fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
-            
-            // Reset form
+
             document.getElementById('formAbsensi').reset();
             document.getElementById('previewBuktiContainer').classList.add('hide');
             document.getElementById('scanResult').classList.add('hide');
             document.getElementById('kameraState').classList.remove('hide');
-            
+
             await fetchData();
             setLoading(false);
             showToast("Absen Berhasil!");
@@ -508,11 +644,11 @@
 
         function renderKaryawan() {
             document.getElementById('tableBodyKaryawan').innerHTML = dataKaryawan.map(k => `
-                <tr class="hover:bg-slate-50 border-b">
-                    <td class="p-4"><img src="${k.Foto || ''}" class="w-10 h-10 rounded-full object-cover bg-slate-200"></td>
-                    <td class="p-4"><div class="font-bold">${k.Nama}</div><div class="text-xs text-blue-600">${k.ID_Karyawan}</div></td>
-                    <td class="p-4 text-sm">${k.Jabatan}</td>
-                    <td class="p-4"><button onclick="/* Fungsi Edit sama spt sblmnya */" class="text-blue-500"><i class="fas fa-edit"></i></button></td>
+                <tr class="hover:bg-paper">
+                    <td class="p-4"><img src="${k.Foto || ''}" class="w-10 h-10 rounded-full object-cover bg-line border border-line"></td>
+                    <td class="p-4"><div class="font-bold text-ink">${k.Nama}</div><div class="text-[11px] font-mono text-accentdark">${k.ID_Karyawan}</div></td>
+                    <td class="p-4 text-sm text-inkmuted">${k.Jabatan}</td>
+                    <td class="p-4 text-center"><button onclick="openEditModal('${k.ID_Karyawan}')" class="text-inkmuted hover:text-accentdark"><i class="fas fa-pen"></i></button></td>
                 </tr>`).join('');
         }
 
@@ -522,17 +658,65 @@
             document.getElementById('filterKaryawan').innerHTML = '<option value="ALL">Semua</option>' + dataKaryawan.map(k => `<option value="${k.ID_Karyawan}">${k.Nama}</option>`).join('');
         }
 
+        function statusChipClass(status) {
+            switch (status) {
+                case 'Hadir': return 'status-chip text-ok border-ok/40 bg-okbg';
+                case 'Sakit': return 'status-chip text-warn border-warn/40 bg-warnbg';
+                case 'Izin': return 'status-chip text-accentdark border-accentdark/40 bg-accent/10';
+                default: return 'status-chip text-info border-info/40 bg-infobg';
+            }
+        }
+
         function filterLaporan() {
+            const bulan = document.getElementById('filterBulan').value; // format YYYY-MM
+            const karyawanId = document.getElementById('filterKaryawan').value;
+
+            currentFilteredLaporan = dataAbsensi.filter(a => {
+                let ok = true;
+                if (bulan) {
+                    const parts = String(a.Tanggal).split('/'); // dd/mm/yyyy (id-ID)
+                    if (parts.length === 3) {
+                        const tanggalBulan = `${parts[2]}-${parts[1]}`;
+                        ok = ok && (tanggalBulan === bulan);
+                    }
+                }
+                if (karyawanId && karyawanId !== 'ALL') {
+                    ok = ok && (a.ID_Karyawan === karyawanId);
+                }
+                return ok;
+            });
+
             const tb = document.getElementById('tableBodyLaporan');
-            tb.innerHTML = dataAbsensi.map(a => `
-                <tr class="border-b text-sm">
-                    <td class="p-3">${a.Tanggal} ${a.Waktu}</td>
-                    <td class="p-3 font-medium">${a.Nama}</td>
-                    <td class="p-3">${a.Status}</td>
-                    <td class="p-3">${a.Foto_Bukti ? `<img src="${a.Foto_Bukti}" class="h-8 rounded">` : '-'}</td>
+            tb.innerHTML = currentFilteredLaporan.map(a => `
+                <tr>
+                    <td class="p-3 font-mono text-xs text-inkmuted">${a.Tanggal} ${a.Waktu}</td>
+                    <td class="p-3 font-medium text-ink">${a.Nama}</td>
+                    <td class="p-3"><span class="${statusChipClass(a.Status)}">${a.Status}</span></td>
+                    <td class="p-3">${a.Foto_Bukti ? `<img src="${a.Foto_Bukti}" class="h-8 rounded-sm2 border border-line">` : '-'}</td>
                 </tr>`).join('');
         }
-        
+
+        function exportToCSV() {
+            if (!currentFilteredLaporan.length) return showToast("Tidak ada data untuk diekspor", "error");
+
+            const headers = ['Tanggal', 'Waktu', 'ID_Karyawan', 'Nama', 'Status', 'Keterangan'];
+            const rows = currentFilteredLaporan.map(a => [a.Tanggal, a.Waktu, a.ID_Karyawan, a.Nama, a.Status, a.Keterangan || '-']);
+            const csv = [headers, ...rows]
+                .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+                .join('\n');
+
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `laporan-absensi-${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("Laporan CSV diunduh");
+        }
+
         window.onload = init;
     </script>
 </body>

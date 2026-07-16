@@ -22,6 +22,8 @@
                         warnbg: '#FBEAEA',
                         info: '#3D5A80',
                         infobg: '#E7ECF3',
+                        pulang: '#6B4FA0',
+                        pulangbg: '#EFEAF6',
                         panel: '#16233B',
                     },
                     fontFamily: {
@@ -134,7 +136,7 @@
 
                 <!-- DASHBOARD -->
                 <section id="tab-dashboard" class="tab-content">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div class="bg-white p-6 rounded-sm2 border border-line border-t-4 border-t-accent flex items-center gap-4">
                             <div class="w-12 h-12 flex items-center justify-center rounded-full bg-accent/10 text-accentdark text-xl border border-accent/30"><i class="fas fa-id-badge"></i></div>
                             <div>
@@ -145,8 +147,15 @@
                         <div class="bg-white p-6 rounded-sm2 border border-line border-t-4 border-t-ok flex items-center gap-4">
                             <div class="w-12 h-12 flex items-center justify-center rounded-full bg-okbg text-ok text-xl border border-ok/30"><i class="fas fa-fingerprint"></i></div>
                             <div>
-                                <p class="text-inkmuted text-[11px] font-mono uppercase tracking-wider">Absensi Hari Ini</p>
+                                <p class="text-inkmuted text-[11px] font-mono uppercase tracking-wider">Absen Masuk Hari Ini</p>
                                 <h3 class="text-4xl font-bold font-mono text-ink" id="statAbsensi">0</h3>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-sm2 border border-line border-t-4 border-t-pulang flex items-center gap-4">
+                            <div class="w-12 h-12 flex items-center justify-center rounded-full bg-pulangbg text-pulang text-xl border border-pulang/30"><i class="fas fa-door-open"></i></div>
+                            <div>
+                                <p class="text-inkmuted text-[11px] font-mono uppercase tracking-wider">Absen Pulang Hari Ini</p>
+                                <h3 class="text-4xl font-bold font-mono text-ink" id="statPulang">0</h3>
                             </div>
                         </div>
                     </div>
@@ -184,6 +193,16 @@
                         <!-- Panel Kamera -->
                         <div class="bg-white border border-line rounded-sm2 p-6 text-center">
                             <h2 class="text-sm font-bold text-ink font-mono uppercase tracking-wider border-b border-line pb-3 mb-4">Pemindaian Wajah</h2>
+
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <button type="button" onclick="setAbsenMode('masuk')" id="btnModeMasuk" class="border-2 border-ok bg-okbg text-ok font-mono text-xs font-semibold uppercase tracking-wide py-2.5 rounded-sm2 transition flex items-center justify-center gap-2">
+                                    <i class="fas fa-right-to-bracket"></i> Absen Masuk
+                                </button>
+                                <button type="button" onclick="setAbsenMode('pulang')" id="btnModePulang" class="border-2 border-line bg-white text-inkmuted font-mono text-xs font-semibold uppercase tracking-wide py-2.5 rounded-sm2 transition flex items-center justify-center gap-2">
+                                    <i class="fas fa-right-from-bracket"></i> Absen Pulang
+                                </button>
+                            </div>
+
                             <p class="text-xs text-inkmuted mb-4">Posisikan wajah di tengah bingkai, pastikan cahaya cukup terang.</p>
 
                             <div id="kameraState" class="mb-4">
@@ -207,7 +226,7 @@
                             <div id="scanResult" class="mt-4 hide">
                                 <div class="w-14 h-14 mx-auto rounded-full bg-okbg flex items-center justify-center text-ok text-xl mb-2 border border-ok/30"><i class="fas fa-check"></i></div>
                                 <h3 class="font-bold text-ink font-mono" id="scanNameResult">Wajah Terdeteksi</h3>
-                                <p class="text-xs text-ok font-medium font-mono">Cocok dengan database. Melanjutkan absensi...</p>
+                                <p class="text-xs text-ok font-medium font-mono" id="scanResultSub">Cocok dengan database. Melanjutkan absensi...</p>
                             </div>
                         </div>
 
@@ -222,13 +241,18 @@
                                         <option value="">-- Pilih Manual Jika Kamera Gagal --</option>
                                     </select>
                                 </div>
-                                <div class="mb-4">
+                                <div class="mb-4" id="statusMasukBlock">
                                     <label class="block text-xs font-mono uppercase tracking-wide text-inkmuted mb-1">Status</label>
                                     <div class="grid grid-cols-2 gap-2">
                                         <label class="border border-line rounded-sm2 p-2 flex items-center gap-2 cursor-pointer hover:bg-paper has-[:checked]:border-ok has-[:checked]:bg-okbg"><input type="radio" name="statusAbsen" value="Hadir" required checked class="text-ok"> <span class="text-sm">Hadir</span></label>
                                         <label class="border border-line rounded-sm2 p-2 flex items-center gap-2 cursor-pointer hover:bg-paper has-[:checked]:border-accentdark has-[:checked]:bg-accent/10"><input type="radio" name="statusAbsen" value="Izin" required class="text-accentdark"> <span class="text-sm">Izin</span></label>
                                         <label class="border border-line rounded-sm2 p-2 flex items-center gap-2 cursor-pointer hover:bg-paper has-[:checked]:border-warn has-[:checked]:bg-warnbg"><input type="radio" name="statusAbsen" value="Sakit" required class="text-warn"> <span class="text-sm">Sakit</span></label>
                                         <label class="border border-line rounded-sm2 p-2 flex items-center gap-2 cursor-pointer hover:bg-paper has-[:checked]:border-info has-[:checked]:bg-infobg"><input type="radio" name="statusAbsen" value="Dinas Luar" required class="text-info"> <span class="text-sm">Dinas Luar</span></label>
+                                    </div>
+                                </div>
+                                <div class="mb-4 hide" id="statusPulangBlock">
+                                    <div class="border-2 border-pulang bg-pulangbg text-pulang rounded-sm2 p-2.5 flex items-center gap-2 font-mono text-xs">
+                                        <i class="fas fa-door-open"></i> Menutup absensi hari ini &amp; menghitung durasi kerja otomatis
                                     </div>
                                 </div>
                                 <div class="mb-4">
@@ -245,7 +269,7 @@
                                 </div>
 
                                 <button type="submit" id="btnSubmitAbsensi" class="w-full bg-accent hover:bg-accentdark hover:text-white text-ink border border-accentdark font-mono text-xs font-semibold uppercase tracking-wide py-3 rounded-sm2 transition flex justify-center gap-2">
-                                    <i class="fas fa-paper-plane"></i> Kirim Absen
+                                    <i class="fas fa-paper-plane"></i> <span id="btnSubmitAbsensiLabel">Kirim Absen Masuk</span>
                                 </button>
                             </form>
                         </div>
@@ -264,7 +288,7 @@
                     <div class="bg-white border border-line rounded-sm2 overflow-hidden">
                         <table class="w-full text-left border-collapse text-sm">
                             <thead class="bg-paper text-inkmuted text-[11px] font-mono uppercase tracking-wider">
-                                <tr><th class="p-3">Waktu</th><th class="p-3">Nama</th><th class="p-3">Status</th><th class="p-3">Bukti</th></tr>
+                                <tr><th class="p-3">Tanggal</th><th class="p-3">Nama</th><th class="p-3">Status</th><th class="p-3">Jam Masuk</th><th class="p-3">Jam Pulang</th><th class="p-3">Durasi Kerja</th><th class="p-3">Bukti</th></tr>
                             </thead>
                             <tbody id="tableBodyLaporan" class="divide-y divide-line"></tbody>
                         </table>
@@ -309,6 +333,7 @@
 
         let dataKaryawan = [], dataAbsensi = [], base64FotoTemp = "", currentEditId = null;
         let currentFilteredLaporan = [];
+        let absenMode = 'masuk'; // masuk atau pulang
 
         const TAB_META = {
             dashboard: { title: 'Dashboard', sub: 'Ringkasan sistem' },
@@ -384,6 +409,31 @@
             }
         }
 
+        function setAbsenMode(mode) {
+            absenMode = mode;
+            const btnMasuk = document.getElementById('btnModeMasuk');
+            const btnPulang = document.getElementById('btnModePulang');
+            const isMasuk = mode === 'masuk';
+
+            btnMasuk.classList.toggle('border-ok', isMasuk);
+            btnMasuk.classList.toggle('bg-okbg', isMasuk);
+            btnMasuk.classList.toggle('text-ok', isMasuk);
+            btnMasuk.classList.toggle('border-line', !isMasuk);
+            btnMasuk.classList.toggle('bg-white', !isMasuk);
+            btnMasuk.classList.toggle('text-inkmuted', !isMasuk);
+
+            btnPulang.classList.toggle('border-pulang', !isMasuk);
+            btnPulang.classList.toggle('bg-pulangbg', !isMasuk);
+            btnPulang.classList.toggle('text-pulang', !isMasuk);
+            btnPulang.classList.toggle('border-line', isMasuk);
+            btnPulang.classList.toggle('bg-white', isMasuk);
+            btnPulang.classList.toggle('text-inkmuted', isMasuk);
+
+            document.getElementById('statusMasukBlock').classList.toggle('hide', !isMasuk);
+            document.getElementById('statusPulangBlock').classList.toggle('hide', isMasuk);
+            document.getElementById('btnSubmitAbsensiLabel').innerText = isMasuk ? 'Kirim Absen Masuk' : 'Kirim Absen Pulang';
+        }
+
         async function startFaceScan() {
             if(!isFaceModelsLoaded || !faceMatcher) {
                 return showToast("AI belum siap atau tidak ada data wajah.", "error");
@@ -445,7 +495,9 @@
                         stopFaceScan();
 
                         const kar = dataKaryawan.find(k => k.ID_Karyawan === match.label);
+                        const modeLabel = absenMode === 'masuk' ? 'Absen Masuk' : 'Absen Pulang';
                         document.getElementById('scanNameResult').innerText = kar.Nama;
+                        document.getElementById('scanResultSub').innerText = `Cocok dengan database. Lanjutkan ${modeLabel}...`;
                         document.getElementById('scanResult').classList.remove('hide');
                         document.getElementById('kameraState').classList.add('hide');
 
@@ -454,7 +506,7 @@
                         document.getElementById('previewBukti').src = base64Bukti;
                         document.getElementById('previewBuktiContainer').classList.remove('hide');
 
-                        showToast(`Halo, ${kar.Nama}! Silakan klik Kirim Absen.`);
+                        showToast(`Halo, ${kar.Nama}! Silakan klik "Kirim ${modeLabel}".`);
                     }
                 }
             }, 500);
@@ -536,8 +588,10 @@
                 dataKaryawan = (await resKar.json()).data || [];
                 dataAbsensi = (await resAbs.json()).data || [];
 
+                const hariIni = new Date().toLocaleDateString('id-ID');
                 document.getElementById('statKaryawan').innerText = dataKaryawan.length;
-                document.getElementById('statAbsensi').innerText = dataAbsensi.filter(a => a.Tanggal === new Date().toLocaleDateString('id-ID')).length;
+                document.getElementById('statAbsensi').innerText = dataAbsensi.filter(a => a.Tanggal === hariIni).length;
+                document.getElementById('statPulang').innerText = dataAbsensi.filter(a => a.Tanggal === hariIni && a.Jam_Pulang && a.Jam_Pulang !== '').length;
 
                 renderKaryawan(); populateSelects(); filterLaporan();
             } catch (e) { showToast("Gagal mengambil data", "error"); }
@@ -622,26 +676,45 @@
 
         async function submitAbsensi(e) {
             e.preventDefault();
-            setLoading(true, "Mengirim Absensi...");
+            setLoading(true, absenMode === 'pulang' ? "Mengirim Absen Pulang..." : "Mengirim Absen Masuk...");
+
+            const isPulang = absenMode === 'pulang';
             const payload = {
-                action: 'addAbsensi',
+                action: isPulang ? 'absenPulang' : 'absenMasuk',
                 idKaryawan: document.getElementById('absensiKaryawan').value,
                 nama: dataKaryawan.find(k => k.ID_Karyawan === document.getElementById('absensiKaryawan').value).Nama,
-                status: document.querySelector('input[name="statusAbsen"]:checked').value,
                 keterangan: document.getElementById('absensiKeterangan').value,
                 fotoBukti: document.getElementById('absensiFotoBukti').value
             };
+            if (!isPulang) {
+                payload.status = document.querySelector('input[name="statusAbsen"]:checked').value;
+            }
 
-            await fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
+            let hasil;
+            try {
+                const res = await fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
+                hasil = await res.json();
+            } catch (err) {
+                setLoading(false);
+                return showToast("Gagal menghubungi server, coba lagi.", "error");
+            }
+
+            setLoading(false);
+
+            if (hasil.status !== 'success') {
+                // Ditolak server -- misalnya sudah absen masuk/pulang hari ini.
+                // Form TIDAK direset supaya foto bukti & pilihan karyawan tidak hilang percuma.
+                return showToast(hasil.message || "Absen ditolak server.", "error");
+            }
 
             document.getElementById('formAbsensi').reset();
             document.getElementById('previewBuktiContainer').classList.add('hide');
             document.getElementById('scanResult').classList.add('hide');
             document.getElementById('kameraState').classList.remove('hide');
+            setAbsenMode('masuk');
 
             await fetchData();
-            setLoading(false);
-            showToast("Absen Berhasil!");
+            showToast(`Absen ${isPulang ? 'Pulang' : 'Masuk'} Berhasil!`);
         }
 
         function renderKaryawan() {
@@ -663,10 +736,21 @@
         function statusChipClass(status) {
             switch (status) {
                 case 'Hadir': return 'status-chip text-ok border-ok/40 bg-okbg';
+                case 'Pulang': return 'status-chip text-pulang border-pulang/40 bg-pulangbg';
                 case 'Sakit': return 'status-chip text-warn border-warn/40 bg-warnbg';
                 case 'Izin': return 'status-chip text-accentdark border-accentdark/40 bg-accent/10';
                 default: return 'status-chip text-info border-info/40 bg-infobg';
             }
+        }
+
+        // Durasi_Menit sudah dihitung di server (backend) saat absen pulang dicatat.
+        function formatDurasi(menitTotal) {
+            const n = Number(menitTotal);
+            if (!menitTotal && menitTotal !== 0) return null;
+            if (isNaN(n)) return null;
+            const j = Math.floor(n / 60);
+            const m = n % 60;
+            return `${j}j ${m}m`;
         }
 
         function filterLaporan() {
@@ -689,20 +773,36 @@
             });
 
             const tb = document.getElementById('tableBodyLaporan');
-            tb.innerHTML = currentFilteredLaporan.map(a => `
+            tb.innerHTML = currentFilteredLaporan.map(a => {
+                const sudahPulang = a.Jam_Pulang && a.Jam_Pulang !== '';
+                const durasiText = formatDurasi(a.Durasi_Menit);
+                const durasiCell = durasiText
+                    ? `<span class="font-mono text-xs text-ink font-semibold">${durasiText}</span>`
+                    : sudahPulang
+                        ? '<span class="text-warn text-xs">tidak valid</span>'
+                        : '<span class="text-inkmuted text-xs">Belum pulang</span>';
+                const bukti = a.Foto_Pulang || a.Foto_Masuk;
+                return `
                 <tr>
-                    <td class="p-3 font-mono text-xs text-inkmuted">${a.Tanggal} ${a.Waktu}</td>
+                    <td class="p-3 font-mono text-xs text-inkmuted">${a.Tanggal}</td>
                     <td class="p-3 font-medium text-ink">${a.Nama}</td>
                     <td class="p-3"><span class="${statusChipClass(a.Status)}">${a.Status}</span></td>
-                    <td class="p-3">${a.Foto_Bukti ? `<img src="${a.Foto_Bukti}" class="h-8 rounded-sm2 border border-line">` : '-'}</td>
-                </tr>`).join('');
+                    <td class="p-3 font-mono text-xs text-ok">${a.Jam_Masuk || '-'}</td>
+                    <td class="p-3 font-mono text-xs text-pulang">${a.Jam_Pulang || '-'}</td>
+                    <td class="p-3">${durasiCell}</td>
+                    <td class="p-3">${bukti ? `<img src="${bukti}" class="h-8 rounded-sm2 border border-line">` : '-'}</td>
+                </tr>`;
+            }).join('');
         }
 
         function exportToCSV() {
             if (!currentFilteredLaporan.length) return showToast("Tidak ada data untuk diekspor", "error");
 
-            const headers = ['Tanggal', 'Waktu', 'ID_Karyawan', 'Nama', 'Status', 'Keterangan'];
-            const rows = currentFilteredLaporan.map(a => [a.Tanggal, a.Waktu, a.ID_Karyawan, a.Nama, a.Status, a.Keterangan || '-']);
+            const headers = ['Tanggal', 'ID_Karyawan', 'Nama', 'Status', 'Jam_Masuk', 'Jam_Pulang', 'Durasi Kerja', 'Keterangan_Masuk', 'Keterangan_Pulang'];
+            const rows = currentFilteredLaporan.map(a => {
+                const durasiText = formatDurasi(a.Durasi_Menit) || '-';
+                return [a.Tanggal, a.ID_Karyawan, a.Nama, a.Status, a.Jam_Masuk || '-', a.Jam_Pulang || '-', durasiText, a.Keterangan_Masuk || '-', a.Keterangan_Pulang || '-'];
+            });
             const csv = [headers, ...rows]
                 .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
                 .join('\n');
